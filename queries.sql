@@ -1,94 +1,132 @@
---List the following details of each employee: employee number, last name, first name, gender, and salary.
-
-SELECT employees.emp_no, 
-employees.last_name,
-employees.first_name,
-employees.gender,
-salaries.salary
-FROM employees
-LEFT JOIN salaries
-ON employees.emp_no = salaries.emp_no
-ORDER BY emp_no
-
-
---List employees who were hired in 1986.
-
-SELECT * FROM employees
-WHERE DATE_PART('year',hire_date) = 1986
-ORDER BY emp_no;
-
-
---List the manager of each department with the following information: 
---department number, department name, the manager's employee number, 
---last name, first name, and start and end employment dates.
-
-SELECT dept_manager.dept_no, 
-departments.dept_name,
-dept_manager.emp_no,
-employees.last_name, 
-employees.first_name,
-dept_manager.from_date,
-dept_manager.to_date
-FROM dept_manager
-LEFT JOIN departments
-ON dept_manager.dept_no = departments.dept_no
-LEFT JOIN employees 
-ON dept_manager.emp_no = employees.emp_no
-ORDER BY emp_no
-
---List the department of each employee with the following information: 
---employee number, last name, first name, and department name.
+/* 1.List the following details of each employee: employee number, last name, 
+first name, sex, and salary.*/
 
 SELECT
-employees.emp_no,
-employees.last_name,
-employees.first_name,
-dept_emp.dept_no,
-departments.dept_name
-FROM employees 
-INNER JOIN dept_emp ON employees.emp_no=dept_emp.emp_no
-INNER JOIN departments ON departments.dept_no=dept_emp.dept_no
-order by emp_no;
+		e.emp_no
+		,e.last_name
+		,e.first_name
+		,e.sex
+		,(SELECT s.salary FROM salaries AS s 
+		  WHERE e.emp_no = s.emp_no) AS salary
+					
+FROM employees AS e
+;
 
---List all employees whose first name is "Hercules" and last names begin with "B."
+/*2.List first name, last name, and hire date for employees who were hired 
+in 1986.*/
 
-SELECT * FROM employees
-WHERE first_name = 'Hercules' AND last_name like 'B%';
+SELECT
+		e.last_name
+		,e.first_name
+		,e.hire_date
+		
+FROM employees AS e
 
--- List all employees in the Sales department, including their
--- employee number, last name, first name, and department name.
+WHERE DATE_PART('year', e.hire_date) = 1986
+;
 
-SELECT 
-employees.emp_no, 
-employees.last_name, 
-employees.first_name,
-dept_emp.dept_no
-FROM employees 
-LEFT JOIN dept_emp 
-ON employees.emp_no=dept_emp.emp_no
-INNER JOIN departments 
-ON departments.dept_no=dept_emp.dept_no
-WHERE departments.dept_name='Sales';
+/*3.List the manager of each department with the following information: 
+department number, department name, the manager's employee number, last name, 
+first name.*/
 
--- List all employees in the Sales and Development departments, including their 
---employee number, last name, first name, and department name.
+SELECT
+		d.dept_no
+		,d.dept_name
+		,e.emp_title_id
+		,e.last_name
+		,e.first_name
 
-SELECT 
-employees.emp_no, 
-employees.last_name, 
-employees.first_name,
-dept_emp.dept_no
-FROM employees 
-LEFT JOIN dept_emp 
-ON employees.emp_no=dept_emp.emp_no
-INNER JOIN departments 
-ON departments.dept_no=dept_emp.dept_no
-WHERE departments.dept_name in ('Sales', 'Development')
+FROM 	dept_emp as de
+		LEFT JOIN employees as e
+					ON e.emp_no = de.emp_no
+		LEFT JOIN departments as d
+					ON d.dept_no = de.dept_no
 
---In descending order, list the frequency count of employee last names, 
---i.e., how many employees share each last name.
+WHERE e.emp_title_id LIKE 'm%'
+;
 
-SELECT last_name, COUNT(*) AS freq_count
-FROM employees
-GROUP BY last_name
-ORDER BY freq_count DESC;
+/*4.List the department of each employee with the following information: 
+employee number, last name, first name, and department name.*/
+
+CREATE VIEW all_dept_emp AS -- Create view for the joined table
+
+			(SELECT e.emp_no
+			 		,e.emp_title_id
+			 		,e.birth_date
+			 		,e.last_name
+			 		,e.first_name
+			 		,e.sex
+			 		,e.hire_date
+			 		,d.dept_name
+			 		,d.dept_no
+
+			FROM 	dept_emp as de
+					LEFT JOIN employees as e
+								ON e.emp_no = de.emp_no
+					LEFT JOIN departments as d
+								ON d.dept_no = de.dept_no)
+;
+
+SELECT
+		emp_no
+		,last_name
+		,first_name
+		,dept_name
+
+FROM 	all_dept_emp
+;
+
+/*5.List first name, last name, and sex for employees whose first name is 
+"Hercules" and last names begin with "B."*/
+
+SELECT
+		e.first_name
+		,e.last_name
+		,e.sex
+
+FROM	employees AS e
+
+WHERE	e.first_name = 'Hercules'
+		AND e.last_name LIKE 'B%'
+;
+
+/*6.List all employees in the Sales department, including their employee number, 
+last name, first name, and department name.*/
+
+CREATE VIEW Q6_7 AS  -- Create another view as similar information is required in the 2 questions
+
+			(SELECT
+					emp_no
+					,last_name
+					,first_name
+					,dept_name
+
+			FROM	all_dept_emp)
+;
+
+SELECT * FROM Q6_7
+
+WHERE	dept_name = 'Sales'
+;
+
+/*7.List all employees in the Sales and Development departments, including 
+their employee number, last name, first name, and department name.*/
+
+SELECT * FROM Q6_7
+
+WHERE	dept_name IN ('Sales', 'Development')
+;
+
+/*8.In descending order, list the frequency count of employee last names, 
+i.e., how many employees share each last name.*/
+
+SELECT
+		e.last_name
+		,COUNT(e.last_name) AS frequency
+		
+FROM	employees AS e
+
+GROUP BY	e.last_name
+
+ORDER BY	frequency DESC
+;
